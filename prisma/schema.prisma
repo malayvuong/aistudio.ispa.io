@@ -1,0 +1,149 @@
+// Prisma Schema for Producer Tools SaaS
+// Database: PostgreSQL (Supabase)
+// ORM: Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+// Enum for Generation Features
+enum GenerationFeature {
+  YOUTUBE_PACKAGE
+  MUSIC_PROMPT
+  ALBUM_CONCEPT
+}
+
+enum AIProviderId {
+  GOOGLE
+  OPENAI
+  DEEPSEEK
+  GROK
+}
+
+// User Model - Uses Supabase Auth UUID as primary key
+// Note: The id field does not have @default() because it comes from Supabase Auth
+model User {
+  id                String            @id // Supabase Auth User ID (must be provided from Supabase Auth)
+  email             String?           @unique
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  // Relations
+  generationHistory GenerationHistory[]
+  providerSecrets   UserProviderSecret[]
+  channelProfiles   ChannelProfile[]
+  socialLinks       SocialLink[]
+
+  @@map("users")
+}
+
+// Core table to store all user generation activities
+model GenerationHistory {
+  id            String            @id @default(uuid())
+  userId        String            // Foreign key to User (Supabase Auth ID)
+  feature       GenerationFeature // Enum: YOUTUBE_PACKAGE, MUSIC_PROMPT, ALBUM_CONCEPT
+  
+  // JSONB columns for flexible input/output storage
+  inputPayload  Json              // Stores user input: lyrics, song name, vibes, etc.
+  outputPayload Json              // Stores AI result: title, description, tags, etc.
+  
+  status        String            // Status: SUCCESS, FAILED
+  createdAt     DateTime          @default(now())
+  
+  // Relations
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assets        Asset[]
+
+  @@index([userId])
+  @@index([feature])
+  @@index([status])
+  @@index([createdAt])
+  @@map("generation_history")
+}
+
+// Store generated images separately
+model Asset {
+  id        String            @id @default(uuid())
+  url       String            // S3 URL of the generated image
+  historyId String            // Foreign key to GenerationHistory
+  type      String            // Asset type: IMAGE_16_9, IMAGE_1_1
+  
+  // Relations
+  history   GenerationHistory @relation(fields: [historyId], references: [id], onDelete: Cascade)
+
+  @@index([historyId])
+  @@index([type])
+  @@map("assets")
+}
+
+model UserProviderSecret {
+  id           String       @id @default(uuid())
+  userId       String
+  provider     AIProviderId
+  encryptedKey String
+  salt         String
+  iv           String
+  tag          String
+  kdf          String       @default("scrypt")
+  kdfParams    Json
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@index([provider])
+  @@map("user_provider_secrets")
+}
+
+model ChannelProfile {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  defaultLanguage String?
+  defaultTone     String?
+  defaultHashtags Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  socialLinks     ChannelSocialLink[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("channel_profiles")
+}
+
+model SocialLink {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channels  ChannelSocialLink[]
+
+  @@index([userId])
+  @@index([type])
+  @@map("social_links")
+}
+
+model ChannelSocialLink {
+  channelId     String
+  socialLinkId  String
+  createdAt     DateTime @default(now())
+
+  channel       ChannelProfile @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  socialLink    SocialLink     @relation(fields: [socialLinkId], references: [id], onDelete: Cascade)
+
+  @@id([channelId, socialLinkId])
+  @@index([socialLinkId])
+  @@map("channel_social_links")
+}
