@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#0B0F1A"/>
+  <circle cx="32" cy="32" r="20" fill="url(#disc)"/>
+  <circle cx="32" cy="32" r="10" fill="#0B0F1A"/>
+  <circle cx="32" cy="32" r="3" fill="#E2E8F0"/>
+  <path d="M46 13l2.3 5.4L54 20l-5.7 1.6L46 27l-2.3-5.4L38 20l5.7-1.6L46 13z" fill="#F8FAFC"/>
+  <defs>
+    <linearGradient id="disc" x1="12" y1="12" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22D3EE"/>
+      <stop offset="0.55" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#F97316"/>
+    </linearGradient>
+  </defs>
+</svg>

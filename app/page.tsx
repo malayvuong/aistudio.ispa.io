@@ -1,13 +1,40 @@
 import Link from 'next/link'
-import { Music, Shield, Sparkles, Wand2 } from 'lucide-react'
+import { unstable_cache } from 'next/cache'
+import { History, Music, Shield, Sparkles, Users, Wand2 } from 'lucide-react'
 
 import { dictionaries } from '@/i18n'
 import { getLang } from '@/lib/i18n/getLang'
+import { prisma } from '@/lib/prisma'
+
+type HomeCounters = {
+	userCount: number | null
+	historyCount: number | null
+}
+
+const getHomeCounters = unstable_cache(
+	async (): Promise<HomeCounters> => {
+		try {
+			const [userCount, historyCount] = await prisma.$transaction([
+				prisma.user.count(),
+				prisma.generationHistory.count(),
+			])
+			return { userCount, historyCount }
+		} catch {
+			return { userCount: null, historyCount: null }
+		}
+	},
+	['home-counters'],
+	{ revalidate: 3600 }
+)
 
 export default async function Home() {
 	const lang = await getLang()
 	const dictionary = dictionaries[lang] ?? dictionaries.en
 	const t = (key: string) => dictionary[key] ?? dictionaries.en[key] ?? key
+	const counters = await getHomeCounters()
+	const formatter = new Intl.NumberFormat(lang === 'vi' ? 'vi-VN' : 'en-US')
+	const formatCount = (value: number | null) =>
+		value === null ? '—' : formatter.format(value)
 	
 	return (
 		<div className="w-full">
@@ -106,6 +133,53 @@ export default async function Home() {
 								<li>2. {t('landing.quickstart.step2')}</li>
 								<li>3. {t('landing.quickstart.step3')}</li>
 							</ol>
+						</div>
+					</div>
+				</div>
+			</section>
+			
+			<section className="mx-auto w-full container px-4 pb-16 sm:px-6 lg:px-8">
+				<div className="rounded-3xl border border-gray-200 bg-white/80 px-6 py-10 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/70">
+					<div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+						<div className="space-y-2">
+							<p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500">
+								{t('landing.stats.title')}
+							</p>
+							<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+								{t('landing.stats.subtitle')}
+							</h2>
+						</div>
+						<div className="grid w-full gap-4 sm:grid-cols-2 lg:max-w-xl">
+							<div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+								<div className="flex items-center gap-3">
+									<div className="rounded-xl bg-indigo-50 p-2 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300">
+										<Users className="h-5 w-5"/>
+									</div>
+									<div>
+										<p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+											{t('landing.stats.users')}
+										</p>
+										<p className="text-2xl font-bold text-gray-900 dark:text-white">
+											{formatCount(counters.userCount)}
+										</p>
+									</div>
+								</div>
+							</div>
+							<div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+								<div className="flex items-center gap-3">
+									<div className="rounded-xl bg-indigo-50 p-2 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300">
+										<History className="h-5 w-5"/>
+									</div>
+									<div>
+										<p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+											{t('landing.stats.history')}
+										</p>
+										<p className="text-2xl font-bold text-gray-900 dark:text-white">
+											{formatCount(counters.historyCount)}
+										</p>
+									</div>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
