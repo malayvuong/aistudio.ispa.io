@@ -29,9 +29,19 @@ export async function POST(req: NextRequest) {
       };
     }> = [];
 
-    const isNonEmptyStringArray = (value: unknown) =>
-      Array.isArray(value) &&
-      value.every((item) => typeof item === "string" && item.trim().length > 0);
+    const isValidStringArray = (value: unknown) =>
+      Array.isArray(value) && value.every((item) => typeof item === "string");
+
+    const normalizeStringArray = (value: unknown) => {
+      if (!Array.isArray(value)) return [];
+      return value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    };
+
+    const hasInvalidArray = (value: unknown) =>
+      value !== undefined && !isValidStringArray(value);
 
     try {
       input = await req.json();
@@ -65,16 +75,21 @@ export async function POST(req: NextRequest) {
         typeof input.customContext === "string" ? input.customContext : "";
 
       if (
-        !isNonEmptyStringArray(input.genres) ||
-        !isNonEmptyStringArray(input.vibes) ||
-        !isNonEmptyStringArray(input.instruments) ||
-        !isNonEmptyStringArray(input.vocals)
+        hasInvalidArray(input.genres) ||
+        hasInvalidArray(input.vibes) ||
+        hasInvalidArray(input.instruments) ||
+        hasInvalidArray(input.vocals)
       ) {
         return NextResponse.json(
           { error: "Invalid input payload.", code: "INVALID_INPUT" },
           { status: 400 }
         );
       }
+
+      const genres = normalizeStringArray(input.genres);
+      const vibes = normalizeStringArray(input.vibes);
+      const instruments = normalizeStringArray(input.instruments);
+      const vocals = normalizeStringArray(input.vocals);
 
       const sid = getOrCreateSid(req.cookies, (name, value, options) => {
         pendingCookies.push({ name, value, options });
@@ -153,6 +168,10 @@ export async function POST(req: NextRequest) {
       const promptInput = {
         ...input,
         lyrics,
+        genres,
+        vibes,
+        instruments,
+        vocals,
         customContext,
         channelId: channelProfile.id,
         channelName: channelProfile.name,

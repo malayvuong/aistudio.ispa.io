@@ -77,6 +77,10 @@ export async function getRedisClient(): Promise<RedisClientType> {
 				throw err
 			})
 	}
-	
-	return clientPromise
+
+	const instance = clientPromise
+	if (!instance) {
+		throw new Error('Redis client unavailable')
+	}
+	return instance
 }
