@@ -16,7 +16,7 @@
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "security:smoke": "ts-node scripts/security-smoke.ts",
-    "test": "npx tsx --test services/__tests__/*.test.ts",
+    "test": "npx tsx --test services/__tests__/*.test.ts lib/__tests__/*.test.ts",
     "db:check": "ts-node scripts/check-db.ts",
     "db:generate": "node scripts/prisma-with-env.js generate",
     "db:migrate:deploy": "node scripts/prisma-with-env.js migrate deploy",
